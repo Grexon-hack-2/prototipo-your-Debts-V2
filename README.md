@@ -4,7 +4,16 @@ Anexo de código del proyecto *Aplicación de la arquitectura web, HTTP/HTTPS, f
 
 Prototipo en HTML, CSS y JavaScript sin bibliotecas ni compilación. Reproduce el contrato de la API REST de Your-Debts v2 con un servidor simulado en memoria (`js/api-simulada.js`), que se reemplazará por la API real en el módulo siguiente.
 
-## Cómo abrirlo
+## Prototipo publicado
+
+**https://grexon-hack-2.github.io/prototipo-your-Debts-V2/**
+
+- Usuario: `tienda017`
+- Contraseña: `Fiado-2026`
+
+Son credenciales de demostración: no hay servidor real ni datos de personas reales.
+
+## Cómo abrirlo en local
 
 1. Abra `index.html` en Chrome, Edge o Firefox (doble clic; no requiere servidor).
 2. Ingrese con usuario `tienda017` y contraseña `Fiado-2026`.
