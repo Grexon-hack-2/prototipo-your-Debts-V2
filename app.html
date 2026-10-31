@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel de la tienda · Your-Debts</title>
+  <link rel="stylesheet" href="css/estilos.css">
+  <script src="js/calculos.js" defer></script>
+  <script src="js/modelos.js" defer></script>
+  <script src="js/datos-demo.js" defer></script>
+  <script src="js/api-simulada.js" defer></script>
+  <script src="js/inspector-http.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+  <header class="barra">
+    <span class="marca">Your-Debts</span>
+    <span id="nombre-tienda" class="tienda"></span>
+    <button type="button" id="salir" class="boton-texto">Salir</button>
+  </header>
+
+  <div class="disposicion">
+    <main id="contenido">
+
+      <!-- Búsqueda: GET nativo. Los criterios quedan en la URL (app.html?search=ana&withBalance=true),
+           así la búsqueda se puede guardar, compartir y volver a cargar. No contiene datos sensibles. -->
+      <section id="buscar" aria-labelledby="t-buscar">
+        <h2 id="t-buscar">Clientes</h2>
+        <form id="form-buscar" action="app.html" method="get" role="search">
+          <div class="fila-campos">
+            <div class="campo crece">
+              <label for="search">Buscar por nombre o teléfono</label>
+              <input id="search" name="search" type="search" maxlength="60" autocomplete="off">
+            </div>
+            <div class="campo casilla">
+              <input id="withBalance" name="withBalance" type="checkbox" value="true">
+              <label for="withBalance">Solo con saldo</label>
+            </div>
+            <button type="submit" class="boton-secundario">Buscar</button>
+          </div>
+        </form>
+        <p id="resumen-busqueda" class="ayuda" aria-live="polite"></p>
+        <table class="tabla" id="tabla-clientes">
+          <thead><tr><th scope="col">Cliente</th><th scope="col">Saldo</th><th scope="col">Riesgo</th><th scope="col"><span class="oculto">Acción</span></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <template id="tpl-fila-cliente">
+          <tr>
+            <td data-campo="nombre"></td>
+            <td data-campo="saldo" class="num"></td>
+            <td><span data-campo="riesgo" class="insignia"></span></td>
+            <td><button type="button" class="boton-texto" data-accion="abrir">Ver cuenta</button></td>
+          </tr>
+        </template>
+      </section>
+
+      <!-- Estado de cuenta: se genera con el DOM al elegir un cliente -->
+      <section id="cuenta" aria-labelledby="t-cuenta" hidden>
+        <h2 id="t-cuenta"></h2>
+        <div class="tarjetas">
+          <div class="dato"><span>Saldo</span><strong id="cuenta-saldo"></strong></div>
+          <div class="dato"><span>Cupo</span><strong id="cuenta-cupo"></strong>
+            <meter id="cuenta-uso" min="0" max="1" low="0.6" high="0.8" optimum="0" value="0"></meter></div>
+          <div class="dato"><span>Riesgo</span><strong id="cuenta-riesgo"></strong><small id="cuenta-cupo-sugerido"></small></div>
+        </div>
+        <details id="cuenta-factores"><summary>¿Por qué este nivel de riesgo?</summary><ul></ul></details>
+        <div class="acciones">
+          <button type="button" class="boton-principal" data-ir="fiado">Registrar fiado</button>
+          <button type="button" class="boton-secundario" data-ir="abono">Registrar abono</button>
+          <a id="enlace-portal" class="boton-texto" target="_blank" rel="noopener">Abrir portal del cliente</a>
+        </div>
+        <h3>Cargos pendientes (abonos aplicados del más antiguo al más reciente)</h3>
+        <table class="tabla" id="tabla-fifo">
+          <thead><tr><th scope="col">Fecha</th><th scope="col">Descripción</th><th scope="col">Valor</th><th scope="col">Vence</th><th scope="col">Pendiente</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <!-- Fiado: POST; crea un recurso nuevo y descuenta inventario -->
+      <section id="fiado" aria-labelledby="t-fiado" hidden>
+        <h2 id="t-fiado">Registrar fiado</h2>
+        <form id="form-fiado" action="/api/charges" method="post" enctype="application/x-www-form-urlencoded">
+          <input type="hidden" name="id">
+          <fieldset>
+            <legend>Cliente</legend>
+            <div class="campo">
+              <label for="fiado-cliente">Cliente</label>
+              <select id="fiado-cliente" name="customerId" required aria-describedby="fiado-cliente-error"></select>
+              <small id="fiado-cliente-error" class="error" aria-live="polite"></small>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>¿Qué se lleva?</legend>
+            <div class="opciones" role="radiogroup">
+              <label><input type="radio" name="tipo" value="producto" checked> Producto del inventario</label>
+              <label><input type="radio" name="tipo" value="libre"> Otro valor</label>
+            </div>
+
+            <div id="bloque-producto">
+              <div class="fila-campos">
+                <div class="campo crece">
+                  <label for="fiado-producto">Producto</label>
+                  <select id="fiado-producto" name="productId" required aria-describedby="fiado-producto-ayuda"></select>
+                  <small id="fiado-producto-ayuda" class="ayuda"></small>
+                </div>
+                <div class="campo">
+                  <label for="fiado-cantidad">Cantidad</label>
+                  <input id="fiado-cantidad" name="quantity" type="number" required min="0.5" step="0.5" value="1" inputmode="decimal" aria-describedby="fiado-cantidad-error">
+                  <small id="fiado-cantidad-error" class="error" aria-live="polite"></small>
+                </div>
+              </div>
+            </div>
+
+            <div id="bloque-libre" hidden>
+              <div class="fila-campos">
+                <div class="campo crece">
+                  <label for="fiado-descripcion">Descripción</label>
+                  <input id="fiado-descripcion" name="description" type="text" maxlength="200" required disabled aria-describedby="fiado-descripcion-error">
+                  <small id="fiado-descripcion-error" class="error" aria-live="polite"></small>
+                </div>
+                <div class="campo">
+                  <label for="fiado-monto">Valor (COP)</label>
+                  <input id="fiado-monto" name="amount" type="number" required disabled min="100" max="5000000" step="50" inputmode="numeric" aria-describedby="fiado-monto-error">
+                  <small id="fiado-monto-error" class="error" aria-live="polite"></small>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Condiciones</legend>
+            <div class="campo">
+              <label for="fiado-vence">Fecha de pago acordada (opcional)</label>
+              <input id="fiado-vence" name="dueDate" type="date" aria-describedby="fiado-vence-ayuda fiado-vence-error">
+              <small id="fiado-vence-ayuda" class="ayuda">Si la deja vacía, vence a los 30 días.</small>
+              <small id="fiado-vence-error" class="error" aria-live="polite"></small>
+            </div>
+            <div class="campo casilla" id="bloque-sobrecupo" hidden>
+              <input id="fiado-sobrecupo" name="overLimitConfirmed" type="checkbox" value="true" aria-describedby="fiado-sobrecupo-error">
+              <label for="fiado-sobrecupo">Autorizo fiar por encima del cupo</label>
+              <small id="fiado-sobrecupo-error" class="error" aria-live="polite"></small>
+            </div>
+          </fieldset>
+
+          <output id="fiado-total" for="fiado-cantidad fiado-producto fiado-monto" class="total" aria-live="polite"></output>
+          <p id="fiado-aviso" class="aviso" hidden></p>
+          <div class="acciones">
+            <button type="submit" class="boton-principal">Guardar fiado</button>
+            <button type="reset" class="boton-texto">Limpiar</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Abono: POST; registra un pago y genera el comprobante -->
+      <section id="abono" aria-labelledby="t-abono" hidden>
+        <h2 id="t-abono">Registrar abono</h2>
+        <form id="form-abono" action="/api/payments" method="post" enctype="application/x-www-form-urlencoded">
+          <input type="hidden" name="id">
+          <fieldset>
+            <legend>Pago</legend>
+            <div class="campo">
+              <label for="abono-cliente">Cliente</label>
+              <select id="abono-cliente" name="customerId" required></select>
+            </div>
+            <div class="campo">
+              <label for="abono-monto">Valor del abono (COP)</label>
+              <input id="abono-monto" name="amount" type="number" required min="100" step="1" inputmode="numeric" aria-describedby="abono-monto-ayuda abono-monto-error">
+              <small id="abono-monto-ayuda" class="ayuda"></small>
+              <small id="abono-monto-error" class="error" aria-live="polite"></small>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Medio de pago</legend>
+            <div class="opciones">
+              <label><input type="radio" name="method" value="Efectivo" checked required> Efectivo</label>
+              <label><input type="radio" name="method" value="Nequi"> Nequi</label>
+              <label><input type="radio" name="method" value="Daviplata"> Daviplata</label>
+              <label><input type="radio" name="method" value="Transferencia"> Transferencia</label>
+              <label><input type="radio" name="method" value="Tarjeta"> Tarjeta</label>
+              <label><input type="radio" name="method" value="Otro"> Otro</label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Comprobante</legend>
+            <div class="campo casilla">
+              <input id="abono-comprobante" name="sendReceipt" type="checkbox" value="true" checked>
+              <label for="abono-comprobante">Enviar comprobante por WhatsApp</label>
+            </div>
+            <div class="campo">
+              <label for="abono-nota">Nota interna (opcional)</label>
+              <textarea id="abono-nota" name="note" rows="2" maxlength="200" aria-describedby="abono-nota-contador"></textarea>
+              <small id="abono-nota-contador" class="ayuda">0 / 200</small>
+            </div>
+          </fieldset>
+          <p id="abono-vista-previa" class="total" aria-live="polite"></p>
+          <div class="acciones">
+            <button type="submit" class="boton-principal">Guardar abono</button>
+            <button type="reset" class="boton-texto">Limpiar</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Inventario: HEAD para saber si el catálogo cambió; POST multipart para adjuntar la factura -->
+      <section id="inventario" aria-labelledby="t-inventario">
+        <h2 id="t-inventario">Inventario</h2>
+        <p class="acciones"><button type="button" id="verificar-catalogo" class="boton-secundario">¿Cambió el catálogo? (HEAD)</button></p>
+        <table class="tabla" id="tabla-productos">
+          <thead><tr><th scope="col">Producto</th><th scope="col">Precio</th><th scope="col">Stock</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <details>
+          <summary>Registrar compra al proveedor</summary>
+          <form id="form-compra" action="/api/products/{id}/restock" method="post" enctype="multipart/form-data">
+            <fieldset>
+              <legend>Entrada de mercancía</legend>
+              <div class="campo">
+                <label for="compra-producto">Producto</label>
+                <select id="compra-producto" name="productId" required></select>
+              </div>
+              <div class="fila-campos">
+                <div class="campo">
+                  <label for="compra-cantidad">Cantidad</label>
+                  <input id="compra-cantidad" name="quantity" type="number" min="1" step="1" required>
+                </div>
+                <div class="campo">
+                  <label for="compra-costo">Costo unitario (COP)</label>
+                  <input id="compra-costo" name="unitCost" type="number" min="1" step="1" required>
+                </div>
+              </div>
+              <div class="campo">
+                <label for="compra-factura">Foto de la factura (JPEG o PNG, máx. 5 MB)</label>
+                <input id="compra-factura" name="invoice" type="file" accept="image/jpeg,image/png" aria-describedby="compra-factura-error">
+                <small id="compra-factura-error" class="error" aria-live="polite"></small>
+              </div>
+            </fieldset>
+            <button type="submit" class="boton-secundario">Registrar compra</button>
+          </form>
+        </details>
+      </section>
+    </main>
+
+    <aside id="inspector" class="inspector" aria-label="Intercambio HTTP">
+      <h2>Intercambio HTTP</h2>
+      <p data-http="estado" class="inspector-estado">Las solicitudes aparecerán aquí.</p>
+      <h3>Solicitud</h3>
+      <pre data-http="solicitud"></pre>
+      <h3>Respuesta</h3>
+      <pre data-http="respuesta"></pre>
+    </aside>
+  </div>
+
+  <div id="notificacion" class="notificacion" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

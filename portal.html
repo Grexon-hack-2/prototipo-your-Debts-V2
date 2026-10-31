@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- El enlace secreto no se envía a otros sitios al seguir un vínculo -->
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <title>Mi cuenta · Your-Debts</title>
+  <link rel="stylesheet" href="css/estilos.css">
+  <script src="js/calculos.js" defer></script>
+  <script src="js/modelos.js" defer></script>
+  <script src="js/datos-demo.js" defer></script>
+  <script src="js/api-simulada.js" defer></script>
+  <script src="js/inspector-http.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/portal.js" defer></script>
+</head>
+<body class="pagina-portal">
+  <main class="portal">
+    <p class="marca">Your-Debts</p>
+    <h1 id="portal-tienda">Estado de cuenta</h1>
+    <p id="portal-cargando">Consultando su cuenta…</p>
+
+    <div id="portal-cuenta" hidden>
+      <p>Hola, <span id="portal-cliente"></span>. Este es su saldo con la tienda:</p>
+      <p class="saldo-grande" id="portal-saldo"></p>
+      <h2>Movimientos</h2>
+      <ol id="portal-movimientos" class="movimientos"></ol>
+    </div>
+
+    <p id="portal-error" class="mensaje error" role="alert" hidden></p>
+    <p class="nota">Este enlace es personal. Si cree que otra persona lo conoce, pida a la tienda uno nuevo.</p>
+  </main>
+
+  <aside id="inspector" class="inspector" aria-label="Intercambio HTTP">
+    <h2>Intercambio HTTP</h2>
+    <p data-http="estado" class="inspector-estado"></p>
+    <h3>Solicitud</h3>
+    <pre data-http="solicitud"></pre>
+    <h3>Respuesta</h3>
+    <pre data-http="respuesta"></pre>
+  </aside>
+</body>
+</html>
